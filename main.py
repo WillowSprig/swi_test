@@ -1,5 +1,6 @@
 import xml.etree.ElementTree as ETree
 import json
+from glob import glob as gglob
 
 
 def recursive(tree):
@@ -9,7 +10,6 @@ def recursive(tree):
 
 
 def remove_incorrect(tree):
-
     out_dict = dict()
 
     # checking objects
@@ -51,13 +51,23 @@ def remove_incorrect(tree):
 
 
 def main():
-    with open('input.xml', 'r') as infile:
-        tree_root = ETree.fromstringlist(['<imaginaryroot>', infile.read(), '</imaginaryroot>'])
-    # tree = ETree.ElementTree(tree_root)
-    new_tree = remove_incorrect(tree_root)
-    # new_tree.write('output.xml')
-    with open('output.json', 'w') as file:
-        json.dump(new_tree, file)
+    xml_files = gglob('*.xml')
+
+    for xml_file in xml_files:
+        try:
+            with open(xml_file, 'r') as infile:
+                tree_root = ETree.fromstringlist(['<imaginaryroot>', infile.read(), '</imaginaryroot>'])
+        except OSError:
+            print("File not found")
+            continue
+        except ETree.ParseError:
+            print("File badly constructed, cannot convert")
+            continue
+        else:
+            new_tree = remove_incorrect(tree_root)
+            json_file = xml_file[:-4] + '.json'
+            with open(json_file, 'w') as outfile:
+                json.dump(new_tree, outfile, indent=4)
 
 
 main()
