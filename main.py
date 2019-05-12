@@ -9,21 +9,27 @@ def recursive(tree):
 
 
 def remove_incorrect(tree):
+
+    out_dict = dict()
+
     # checking objects
     for treeObject in tree.findall('object'):
         no_name = treeObject.find('obj_name') is None
-        empty_name = not treeObject.findtext('obj_name')
-                          # and treeObject.findtext('obj_name').strip())
+        name = treeObject.findtext('obj_name')
         no_fields = treeObject.find('field') is None
-        if no_name or empty_name or no_fields:
+
+        if no_name or (not name and not name.strip()) or no_fields:
             tree.remove(treeObject)
             continue
+
+        inner_dict = dict()
         # checking object fields
         for element in list(treeObject):
             tag = element.tag
             if not (tag == 'obj_name' or tag == 'field'):
                 treeObject.remove(element)
                 continue
+
             # checking fields
             if tag == 'field':
                 incomplete_field = (element.find('name') is None
@@ -35,7 +41,13 @@ def remove_incorrect(tree):
                     treeObject.remove(element)
                     continue
                 element.remove(element.find('type'))
-    return ETree.ElementTree(tree)
+                inner_dict[element.findtext('name')] = element.findtext('value')
+
+        # saving to dictionary
+        out_dict[name] = inner_dict
+
+    # return ETree.ElementTree(tree)
+    return out_dict
 
 
 def main():
@@ -43,9 +55,9 @@ def main():
         tree_root = ETree.fromstringlist(['<imaginaryroot>', infile.read(), '</imaginaryroot>'])
     # tree = ETree.ElementTree(tree_root)
     new_tree = remove_incorrect(tree_root)
-    new_tree.write('output.xml')
-    # with open('output.json', 'w') as file:
-    #     json.dump(new_tree.getroot().attrib, file)
+    # new_tree.write('output.xml')
+    with open('output.json', 'w') as file:
+        json.dump(new_tree, file)
 
 
 main()
