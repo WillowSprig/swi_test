@@ -3,12 +3,6 @@ import json
 from glob import glob as gglob
 
 
-def recursive(tree):
-    for child in list(tree):
-        print(child)
-        recursive(child)
-
-
 def remove_incorrect(tree):
     out_dict = dict()
 
@@ -40,8 +34,11 @@ def remove_incorrect(tree):
                 if incomplete_field or wrong_type:
                     treeObject.remove(element)
                     continue
+                if element.findtext('type') == 'int':
+                    inner_dict[element.findtext('name')] = int(element.findtext('value'))
+                else:
+                    inner_dict[element.findtext('name')] = element.findtext('value')
                 element.remove(element.find('type'))
-                inner_dict[element.findtext('name')] = element.findtext('value')
 
         # saving to dictionary
         out_dict[name] = inner_dict
@@ -51,23 +48,28 @@ def remove_incorrect(tree):
 
 
 def main():
+    # listing all xml files
     xml_files = gglob('*.xml')
 
     for xml_file in xml_files:
-        try:
-            with open(xml_file, 'r') as infile:
-                tree_root = ETree.fromstringlist(['<imaginaryroot>', infile.read(), '</imaginaryroot>'])
-        except OSError:
-            print("File not found")
-            continue
-        except ETree.ParseError:
-            print("File badly constructed, cannot convert")
-            continue
-        else:
-            new_tree = remove_incorrect(tree_root)
-            json_file = xml_file[:-4] + '.json'
-            with open(json_file, 'w') as outfile:
-                json.dump(new_tree, outfile, indent=4)
+        with open(xml_file, 'r') as infile:
+            try:
+                tree_root = ETree.parse(xml_file)
+            except ETree.ParseError:
+                # for files with no root element
+                try:
+                    tree_root = ETree.fromstringlist(['<imaginaryroot>', infile.read(), '</imaginaryroot>'])
+                except ETree.ParseError:
+                    print("File badly constructed, cannot convert")
+                    continue
+        # converting to Element, if needed
+        if type(tree_root) is ETree.ElementTree:
+            tree_root = tree_root.getroot()
+        new_tree = remove_incorrect(tree_root)
+        # creating output file with the same name as input file
+        json_file = xml_file[:-4] + '.json'
+        with open(json_file, 'w') as outfile:
+            json.dump(new_tree, outfile, indent=4)
 
 
 main()
